@@ -1,3 +1,4 @@
+from network import Network
 import pygame
 from pygame import color
 
@@ -9,9 +10,10 @@ pygame.display.set_caption("Client")
 
 clientNumber = 0
 
-def redrawWindow(win, ground, player):
+def redrawWindow(win, ground, player, player2):
     win.fill((255,255,255))
     player.draw(win)
+    player2.draw(win)
     ground.draw(win)
     pygame.display.update()
 
@@ -46,7 +48,10 @@ class Player():
         if keys[pygame.K_DOWN]:
             if self.y < (HEIGHT - self.height):
                 self.y += self.vel
+
+        self.update()
         
+    def update(self):
         self.rect = (self.x, self.y, self.width, self.height)
 
 class Ground():
@@ -66,23 +71,41 @@ class Ground():
             player.fall()
         elif((player.y + player.height) > self.y):
             player.y = self.y - player.height
-    
+
+def read_pos(pos):
+    pos = pos.split(",")
+    return int(pos[0]), int(pos[1])
+
+def make_pos(tup):
+    return str(tup[0]) + "," + str(tup[1])
 
 
 
 def main():
     run = True
-    p = Player(50,50,25,25,(0,255,0))
+    print("not connected")
+    n = Network()
+    print("connecting")
+    startPos = read_pos(n.getPos())
+    p1 = Player(startPos[0],startPos[1],25,25,(0,255,0))
+    p2 = Player(startPos[0],startPos[1],25,25,(0,0,255))
+
     g = Ground(0,450,WIDTH,50, (0,0,0))
 
     while run:
+        print("connecting")
+        p2Pos = read_pos(n.send(make_pos((p1.x, p1.y))))
+        p2.x = p2Pos[0]
+        p2.y = p2Pos[1]
+        p2.update()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.quit()
-        p.move()
-        g.checkGrounded(p)
-        redrawWindow(win, g, p)
+        p1.move()
+        g.checkGrounded(p1)
+        redrawWindow(win, g, p1, p2)
 
 if __name__ == "__main__":
     main()
