@@ -1,5 +1,6 @@
 import math
 import pygame
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, sprite, pos, width, height) -> None:
         pygame.sprite.Sprite.__init__(self)
