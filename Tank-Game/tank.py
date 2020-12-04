@@ -95,7 +95,9 @@ def tank(x, y, turPos,color):
                        (x - 18, y - 15),
                        (x - 15, y - 17),
                        (x - 13, y - 19),
-                       (x - 11, y - 21)
+                       (x - 11, y - 21),
+                       (x - 9, y - 23),
+                       (x - 7, y - 25)
                        ]
 
     pygame.draw.circle(gameDisplay, color, (x, y), int(tankHeight / 2))
@@ -226,8 +228,9 @@ def pause():
         clock.tick(5)
 
 #----------------------------function for barrior-------------------------------------------------------
-def barrier(xlocation, randomHeight, barrier_width):
-    pygame.draw.rect(gameDisplay, green, [xlocation, display_height - randomHeight, barrier_width, randomHeight])
+def barrier(xlocation, Y, barrier_width):
+    # pygame.draw.rect(gameDisplay, green, [xlocation, display_height - randomHeight, barrier_width, randomHeight])
+    pygame.draw.circle(gameDisplay, green, [int(xlocation),  Y],barrier_width)
 
 #---------------------------function for explosion for both tanks---------------------------------------
 def explosion(x, y, size=50):
@@ -285,10 +288,10 @@ def fireShell(xy, tankx, tanky, turPos, gun_power, xlocation, barrier_width, ran
             (((startingShell[0] - xy[0]) * 0.015 / (gun_power / 50)) ** 2) - (turPos + turPos / (12 - turPos)))
 
         if startingShell[1] > display_height - ground_height:
-            print("Last shell:", startingShell[0], startingShell[1])
+            # print("Last shell:", startingShell[0], startingShell[1])
             hit_x = int((startingShell[0] * display_height - ground_height) / startingShell[1])
             hit_y = int(display_height - ground_height)
-            print("Impact:", hit_x, hit_y)
+            # print("Impact:", hit_x, hit_y)
 
             if enemyTankX + 10 > hit_x > enemyTankX - 10:
                 print("Critical Hit!")
@@ -306,17 +309,20 @@ def fireShell(xy, tankx, tanky, turPos, gun_power, xlocation, barrier_width, ran
             explosion(hit_x, hit_y)
             fire = False
 
+        #x1 is right side of barrier, x2 is left side. both add radius of circle from middle
         check_x_1 = startingShell[0] <= xlocation + barrier_width
-        check_x_2 = startingShell[0] >= xlocation
+        check_x_2 = startingShell[0] >= xlocation - barrier_width
 
+        #y1 is bottom of barrier, y2 is top of barrier, offset by 30 since the radius of circle is below map
         check_y_1 = startingShell[1] <= display_height
-        check_y_2 = startingShell[1] >= display_height - randomHeight
+        check_y_2 = startingShell[1] >= display_height - randomHeight - 30
 
         if check_x_1 and check_x_2 and check_y_1 and check_y_2:
-            print("Last shell:", startingShell[0], startingShell[1])
+            # print("Last shell:", startingShell[0], startingShell[1])
+            print('miss')
             hit_x = int((startingShell[0]))
             hit_y = int(startingShell[1])
-            print("Impact:", hit_x, hit_y)
+            # print("Impact:", hit_x, hit_y)
             explosion(hit_x, hit_y)
             fire = False
 
@@ -559,7 +565,9 @@ def gameLoop():
     player_health = 100
     enemy_health = 100
 
-    barrier_width = 50
+    # barrier_width = 50
+    Y = display_height - ground_height
+    radius = random.randrange(40,100)
 
     mainTankX = display_width * 0.9
     mainTankY = display_height * 0.9
@@ -620,8 +628,8 @@ def gameLoop():
 
                 elif event.key == pygame.K_SPACE:
 
-                    damage = fireShell(gun, mainTankX, mainTankY, currentTurPos, fire_power, xlocation, barrier_width,
-                                       randomHeight, enemyTankX, enemyTankY)
+                    damage = fireShell(gun, mainTankX, mainTankY, currentTurPos, fire_power, xlocation, radius,
+                                       radius, enemyTankX, enemyTankY)
                     enemy_health -= damage
 
                     possibleMovement = ['f', 'r']
@@ -643,15 +651,17 @@ def gameLoop():
 
                             power(fire_power)
 
-                            barrier(xlocation, randomHeight, barrier_width)
+                            # barrier(xlocation, randomHeight, barrier_width)
+                            barrier(xlocation,Y,radius)
+
                             gameDisplay.fill(green,
                                              rect=[0, display_height - ground_height, display_width, ground_height])
                             pygame.display.update()
 
                             clock.tick(FPS)
 
-                    damage = e_fireShell(enemy_gun, enemyTankX, enemyTankY, 8, 50, xlocation, barrier_width,
-                                         randomHeight, mainTankX, mainTankY)
+                    damage = e_fireShell(enemy_gun, enemyTankX, enemyTankY, 8, 50, xlocation, radius,
+                                         radius, mainTankX, mainTankY)
                     player_health -= damage
 
                 elif event.key == pygame.K_a:
@@ -678,7 +688,7 @@ def gameLoop():
         elif currentTurPos < 0:
             currentTurPos = 0
 
-        if mainTankX - (tankWidth / 2) < xlocation + barrier_width:
+        if mainTankX - (tankWidth / 2) < xlocation + radius:
             mainTankX += 5
 
         gameDisplay.fill(black)
@@ -695,7 +705,8 @@ def gameLoop():
 
         power(fire_power)
 
-        barrier(xlocation, randomHeight, barrier_width)
+        barrier(xlocation,Y,radius)
+        # barrier(xlocation, randomHeight, barrier_width)
         gameDisplay.fill(green, rect=[0, display_height - ground_height, display_width, ground_height])
         pygame.display.update()
 
