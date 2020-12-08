@@ -312,71 +312,24 @@ def explosion(x, y, size=50):
         explode = False
 
 #--------------------------------firing function for players tank-------------------------------------------
-def fireShell(xy, tankx, tanky, turPos, gun_power, xlocation, barrier_width, randomHeight, enemyTankX, enemyTankY):
-    #pygame.mixer.Sound.play(fire_sound)
-    fire = True
-    damage = 0
-
-    startingShell = list(xy)
-
-    print("FIRE!", xy)
-
-    while fire:
+def fireShell(n: Network):
+    data = n.ReadData()
+    curX, curY = data[0], data[1]
+    while data != "HIT":
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-
         # print(startingShell[0],startingShell[1])
-        pygame.draw.circle(gameDisplay, red, (startingShell[0], startingShell[1]), 5)
-
-        startingShell[0] -= (12 - turPos) * 2
-
-        # y = x**2
-        startingShell[1] += int(
-            (((startingShell[0] - xy[0]) * 0.015 / (gun_power / 50)) ** 2) - (turPos + turPos / (12 - turPos)))
-
-        if startingShell[1] > display_height - ground_height:
-            #print("Last shell:", startingShell[0], startingShell[1])
-            hit_x = int((startingShell[0] * display_height - ground_height) / startingShell[1])
-            hit_y = int(display_height - ground_height)
-            #print("Impact:", hit_x, hit_y)
-
-            if enemyTankX + 10 > hit_x > enemyTankX - 10:
-                print("Critical Hit!")
-                damage = 25
-            elif enemyTankX + 15 > hit_x > enemyTankX - 15:
-                print("Hard Hit!")
-                damage = 18
-            elif enemyTankX + 25 > hit_x > enemyTankX - 25:
-                print("Medium Hit")
-                damage = 10
-            elif enemyTankX + 35 > hit_x > enemyTankX - 35:
-                print("Light Hit")
-                damage = 5
-
-            explosion(hit_x, hit_y)
-            fire = False
-
-        check_x_1 = startingShell[0] <= xlocation + barrier_width
-        check_x_2 = startingShell[0] >= xlocation - barrier_width
-
-        #y1 is bottom of barrier, y2 is top of barrier, offset by 30 since the radius of circle is below map
-
-        check_y_1 = startingShell[1] <= display_height
-        check_y_2 = startingShell[1] >= display_height - randomHeight - 30
-
-        if check_x_1 and check_x_2 and check_y_1 and check_y_2:
-            print("Last shell:", startingShell[0], startingShell[1])
-            hit_x = int((startingShell[0]))
-            hit_y = int(startingShell[1])
-            print("Impact:", hit_x, hit_y)
-            explosion(hit_x, hit_y)
-            fire = False
-
+        data = n.ReadData()
+        curX, curY = data[0], data[1]
+        pygame.draw.circle(gameDisplay, red, (curX, curY), 5)
         pygame.display.update()
         clock.tick(60)
-    return damage
+    players = n.ReadData()
+    player, enemy = players[0], players[1]
+    explosion(curX, curY)
+    return [player, enemy]
 
 #--------------------------------firing function for computer's tank-------------------------------------------
 def e_fireShell(xy, tankx, tanky, turPos, gun_power, xlocation, barrier_width, randomHeight, ptankx, ptanky):
@@ -622,13 +575,11 @@ def gameLoop(n : Network):
     gameExit = False
     gameOver = False
     FPS = 15
-    print("Entering Game Loop")
     playersInfo = n.ReadData()
     mainInfo, enemyInfo = playersInfo[0], playersInfo[1]
-    print('info obtained')
     player_health, enemy_health = mainInfo.health, enemyInfo.health
     mainTankX, mainTankY, enemyTankX, enemyTankY = mainInfo.x, mainInfo.y, enemyInfo.x, enemyInfo.y
-    currentTurPos = mainInfo.turPos
+    currentTurPos, enemyTurPos = mainInfo.turPos, enemyInfo.turPos
     tankColor, enemyColor = mainInfo.color, enemyInfo.color
 
     # barrier_width = 50
@@ -686,41 +637,7 @@ def gameLoop(n : Network):
                     pause()
 
                 elif event.key == pygame.K_SPACE:
-
-                    damage = fireShell(gun, mainTankX, mainTankY, currentTurPos, fire_power, xlocation, radius,
-                                       radius, enemyTankX, enemyTankY)
-                    enemy_health -= damage
-
-                    possibleMovement = ['f', 'r']
-                    moveIndex = random.randrange(0, 2)
-
-                    for x in range(random.randrange(0, 10)):
-
-                        if display_width * 0.3 > enemyTankX > display_width * 0.03:
-                            if possibleMovement[moveIndex] == "f":
-                                enemyTankX += 5
-                            elif possibleMovement[moveIndex] == "r":
-                                enemyTankX -= 5
-
-                            gameDisplay.fill(black)
-                            health_bars(player_health, enemy_health)
-                            gun = tank(mainTankX, mainTankY, currentTurPos,tankColor)
-                            enemy_gun = enemy_tank(enemyTankX, enemyTankY, 8,enemyColor)
-                            fire_power += power_change
-
-                            power(fire_power)
-
-                            barrier(xlocation, Y, radius)
-                            gameDisplay.fill(green,
-                                             rect=[0, display_height - ground_height, display_width, ground_height])
-                            pygame.display.update()
-
-                            clock.tick(FPS)
-
-                    damage = e_fireShell(enemy_gun, enemyTankX, enemyTankY, 8, 50, xlocation, radius,
-                                         radius, mainTankX, mainTankY)
-                    player_health -= damage
-
+                    n.SendData(["Firing", fire_power])
                 elif event.key == pygame.K_a:
                     power_change = -1
                 elif event.key == pygame.K_d:
@@ -738,18 +655,16 @@ def gameLoop(n : Network):
         
         mainTankX += tankMove
         currentTurPos += changeTur
-        n.SendData([tankMove, changeTur])
-
 
         if currentTurPos > 8:
             currentTurPos = 8
         elif currentTurPos < 0:
             currentTurPos = 0
-
+        n.SendData([tankMove, currentTurPos])
         gameDisplay.fill(black)
         health_bars(player_health, enemy_health)
-        gun = tank(mainTankX, mainTankY, currentTurPos,tankColor)
-        enemy_gun = enemy_tank(enemyTankX, enemyTankY, 8,enemyColor)
+        tank(mainTankX, mainTankY, currentTurPos,tankColor)
+        enemy_tank(enemyTankX, enemyTankY, enemyTurPos,enemyColor)
 
         fire_power += power_change
 
@@ -769,11 +684,21 @@ def gameLoop(n : Network):
         elif enemy_health < 1:
             you_win()
         clock.tick(FPS)
-        players = n.ReadData()
-        enemyData = players[1]
-        mainData = players[0]
-        enemyTankX = enemyData.x
-        mainTankX = mainData.x
+        info = n.ReadData()
+        if type(info) == type(" ") and info == "FIRING":
+            players = fireShell(n)
+            player, enemy = players[0], players[1]
+            player_health, enemy_health = player.health, enemy.health
+            info = n.ReadData()
+        players = info
+        try:
+            enemyData = players[1]
+            mainData = players[0]
+            enemyTankX = enemyData.x
+            mainTankX = mainData.x
+            enemyTurPos = enemyData.turPos
+        except:
+            pass
     pygame.quit()
     quit()
 

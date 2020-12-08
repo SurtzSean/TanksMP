@@ -16,8 +16,8 @@ class Network:
         try:
             result = pickle.loads(data)
             return result
-        except:
-            print("Could not read data")
+        except error as e:
+            print(e)
     
     def SendData(self, data):
         send = pickle.dumps(data)

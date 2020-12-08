@@ -27,6 +27,7 @@ class Server:
     
     def handleConnection(self, conn, addr, g):
         try:
+            clock = pygame.time.Clock()
             game : GameData = self.games[g]
             game.AddPlayer()
             pNo = game.playerCount % 2
@@ -40,17 +41,35 @@ class Server:
             self.SendData(addr, "Ready")
             print("Ready")
             self.SendData(addr, [player,enemy])
-            #set spawn info
-                
+
             #While playing game
             while True:
                 pos = self.ReadData(addr)
+                if type(pos) == type([1,]) and pos[0] == "Firing":
+                    game.firing = pNo
+                    print(type(pos))
+                if game.firing != -1:
+                    self.SendData(addr, "FIRING")
+                    power = int(pos[1])
+                    defenderNo = (game.firing + 1) % 2
+                    val = game.CalculateBallPosition(game.firing, defenderNo, power)
+                    while type(val) != type(1): #while it is returning coordiantes
+                        print(addr)
+                        self.SendData(addr, val)
+                        val = game.CalculateBallPosition(game.firing, defenderNo, power)
+                        clock.tick(60)
+                    game.turn = defenderNo
+                    game.firing = -1
+                    game.players[defenderNo].health -= val
+                    self.SendData("HIT")
+                    self.SendData(addr, [player, enemy])
+                    pos = self.ReadData()
                 player.x += pos[0]
                 player.turPos = pos[1]
                 self.SendData(addr,[player, enemy])
+                clock.tick(60)
         except Exception as e:
             print(e)
-            print("Player Disconnected")
         finally:
             del self.games[g]
             for key in self.games.keys():
