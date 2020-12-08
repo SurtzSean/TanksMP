@@ -25,9 +25,3 @@ class Network:
             self.c.sendall(send)
         except:
             print("could not send data")
-
-        
-    def SendData(self):
-        data = "ready"
-        sendData = pickle.dumps(data)
-        self.c.send(sendData)

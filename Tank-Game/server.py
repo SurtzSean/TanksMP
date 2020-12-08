@@ -29,24 +29,25 @@ class Server:
         try:
             game : GameData = self.games[g]
             game.AddPlayer()
-            pNo = game.playerCount
+            pNo = game.playerCount % 2
             player = game.players[pNo]
+            enemyNo = (pNo + 1) % 2
+            enemy = game.players[enemyNo]
+            print("test")
             #Wait for player
             while not game.ready:
                 self.SendData(addr, "WaitingForPlayer")
             self.SendData(addr, "Ready")
+            print("Ready")
+            self.SendData(addr, [player,enemy])
             #set spawn info
-            self.SendData(addr, player)
-            print("inserting player info")
-            print("inserted")
-
-            enemyNo = (pNo % 2) + 1
-            enemy = game.players[enemyNo]
-
-            #Send Enemy Info
-            self.SendData(addr, enemy)
-
+                
             #While playing game
+            while True:
+                pos = self.ReadData(addr)
+                player.x += pos[0]
+                player.turPos = pos[1]
+                self.SendData(addr,[player, enemy])
         except Exception as e:
             print(e)
             print("Player Disconnected")

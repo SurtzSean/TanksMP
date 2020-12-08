@@ -623,13 +623,13 @@ def gameLoop(n : Network):
     gameOver = False
     FPS = 15
     print("Entering Game Loop")
-    pInfo = n.ReadData()
-
-    player_health = pInfo.health
-    mainTankX, mainTankY = pInfo.x, pInfo.y
-    currentTurPos = pInfo.turPos
-    tankColor = pInfo.color
-    print("Player loaded")
+    playersInfo = n.ReadData()
+    mainInfo, enemyInfo = playersInfo[0], playersInfo[1]
+    print('info obtained')
+    player_health, enemy_health = mainInfo.health, enemyInfo.health
+    mainTankX, mainTankY, enemyTankX, enemyTankY = mainInfo.x, mainInfo.y, enemyInfo.x, enemyInfo.y
+    currentTurPos = mainInfo.turPos
+    tankColor, enemyColor = mainInfo.color, enemyInfo.color
 
     # barrier_width = 50
     Y = display_height - ground_height
@@ -638,19 +638,10 @@ def gameLoop(n : Network):
     tankMove = 0
     changeTur = 0
 
-    print("requesting enemy data")
-    enemyData = n.ReadData()
-
-    enemy_health = enemyData.health
-    enemyTankX, enemyTankY = enemyData.x, enemyData.y
-    enemyColor = enemyData.color
-
-
     fire_power = 50
     power_change = 0
 
     xlocation = int(display_width / 2)
-    terrHeight = int(display_height * 0.33)
 
     while not gameExit:
 
@@ -672,7 +663,7 @@ def gameLoop(n : Network):
 
                             gameExit = True
                             gameOver = False
-
+        
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
@@ -744,10 +735,11 @@ def gameLoop(n : Network):
 
                 if event.key == pygame.K_a or event.key == pygame.K_d:
                     power_change = 0
-
+        
         mainTankX += tankMove
-
         currentTurPos += changeTur
+        n.SendData([tankMove, changeTur])
+
 
         if currentTurPos > 8:
             currentTurPos = 8
@@ -777,7 +769,11 @@ def gameLoop(n : Network):
         elif enemy_health < 1:
             you_win()
         clock.tick(FPS)
-
+        players = n.ReadData()
+        enemyData = players[1]
+        mainData = players[0]
+        enemyTankX = enemyData.x
+        mainTankX = mainData.x
     pygame.quit()
     quit()
 
