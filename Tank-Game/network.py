@@ -2,7 +2,7 @@ import socket
 import pickle
 from socket import error
 
-HOST = socket.gethostbyname(socket.gethostname())
+HOST = "50.116.57.17"
 PORT = 5000
 
 class Network:
@@ -12,7 +12,7 @@ class Network:
         self.c.connect(self.addr)
     
     def ReadData(self):
-        data = self.c.recv(9000*3)
+        data = self.c.recv(12000)
         try:
             result = pickle.loads(data)
             return result

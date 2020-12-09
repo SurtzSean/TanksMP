@@ -5,7 +5,7 @@ import pygame
 from GameInfo import GameData, PlayerData
 import time
 
-HOST = socket.gethostbyname(socket.gethostname())
+HOST = ''
 PORT = 5000
 class Server:
     def __init__(self) -> None:
@@ -17,7 +17,7 @@ class Server:
         self.s.listen()
     
     def ReadData(self, addr):
-        data = addr.recv(9000*3)
+        data = addr.recv(500)
         return pickle.loads(data)
 
     def SendData(self, addr, data):
@@ -40,40 +40,49 @@ class Server:
                 self.SendData(addr, "WaitingForPlayer")
             self.SendData(addr, "Ready")
             print("Ready")
-            self.SendData(addr, [player,enemy])
-
+            self.SendData(addr, [player,enemy, pNo])
             #While playing game
             while True:
                 pos = self.ReadData(addr)
-                if type(pos) == type([1,]) and pos[0] == "Firing":
+                if game.turn == pNo and type(pos) == type([1,]) and pos[0] == "Firing":
                     game.firing = pNo
-                    print(type(pos))
+                    if pos[1] > 100:
+                        game.firingPower = 100
+                    elif pos[1] < 1:
+                        game.firing = 1
+                    else:
+                        game.firingPower = pos[1]
                 if game.firing != -1:
                     self.SendData(addr, "FIRING")
-                    power = int(pos[1])
+                    power = game.firingPower
                     defenderNo = (game.firing + 1) % 2
                     val = game.CalculateBallPosition(game.firing, defenderNo, power)
-                    while type(val) != type(1): #while it is returning coordiantes
-                        print(addr)
-                        self.SendData(addr, val)
-                        val = game.CalculateBallPosition(game.firing, defenderNo, power)
-                        clock.tick(60)
-                    game.turn = defenderNo
-                    game.firing = -1
-                    game.players[defenderNo].health -= val
-                    self.SendData("HIT")
-                    self.SendData(addr, [player, enemy])
-                    pos = self.ReadData()
-                player.x += pos[0]
-                player.turPos = pos[1]
+                    if pNo != defenderNo:
+                        while type(val) != type(1): #while it is returning coordiantes
+                            game.cannonBallPos = val
+                            self.SendData(addr, game.cannonBallPos)
+                            val = game.CalculateBallPosition(game.firing, defenderNo, power, game.cannonBallPos)
+                            clock.tick(60)
+                        game.turn = defenderNo
+                        game.firing = -1
+                        game.players[defenderNo].health -= val
+                    else:
+                        while game.firing != -1:
+                            print(game.cannonBallPos)
+                            self.SendData(addr, game.cannonBallPos)
+                            clock.tick(60)
+                    self.SendData(addr, "HIT")
+                elif game.turn == pNo:
+                    if player.x + pos[0] < 800 and player.x + pos[0] > 1 and (player.x + pos[0] > 480 or player.x + pos[0] < 320):
+                        player.x += pos[0]
+                    player.turPos = pos[1]
                 self.SendData(addr,[player, enemy])
                 clock.tick(60)
-        except Exception as e:
+        except error as e:
             print(e)
         finally:
-            del self.games[g]
-            for key in self.games.keys():
-                print(key)
+            if self.games[g]:
+                del self.games[g]
 
     def connect(self):
         while True:

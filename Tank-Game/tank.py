@@ -1,9 +1,7 @@
 from network import Network
 import pygame
-import time
 import random
-from GameInfo import PlayerData
-import threading
+import GameInfo
 
 pygame.init()
 
@@ -299,13 +297,14 @@ def explosion(x, y, size=50):
         magnitude = 1
 
         while magnitude < size:
-            exploding_bit_x = x + random.randrange(-1 * magnitude, magnitude)
-            exploding_bit_y = y + random.randrange(-1 * magnitude, magnitude)
-
-            pygame.draw.circle(gameDisplay, colorChoices[random.randrange(0, 4)], (exploding_bit_x, exploding_bit_y),
-                               random.randrange(1, 5))
-            magnitude += 1
-
+            try:
+                exploding_bit_x = x + random.randrange(-1 * magnitude, magnitude)
+                exploding_bit_y = y + random.randrange(-1 * magnitude, magnitude)
+                pygame.draw.circle(gameDisplay, colorChoices[random.randrange(0, 4)], (exploding_bit_x, exploding_bit_y),
+                                random.randrange(1, 5))
+                magnitude += 1
+            except:
+                pass
             pygame.display.update()
             clock.tick(100)
 
@@ -321,10 +320,10 @@ def fireShell(n: Network):
                 pygame.quit()
                 quit()
         # print(startingShell[0],startingShell[1])
-        data = n.ReadData()
         curX, curY = data[0], data[1]
         pygame.draw.circle(gameDisplay, red, (curX, curY), 5)
         pygame.display.update()
+        data = n.ReadData()
         clock.tick(60)
     players = n.ReadData()
     player, enemy = players[0], players[1]
@@ -473,10 +472,11 @@ def game_intro():
 
         gameDisplay.fill(black)
         message_to_screen("Welcome to Tanks!", white, -100, size="large")
-        message_to_screen("The objective is to shoot and destroy", wheat, 15)
-        message_to_screen("the enemy tank before they destroy you.", wheat, 60)
-        message_to_screen("The more enemies you destroy, the harder they get.", wheat, 110)
-        message_to_screen("Brought To You by Sean Surtz and Peter Hart", wheat, 280)
+        message_to_screen("Pressing Play Will Search For A Game", wheat, 15)
+        message_to_screen("Wait Until You Are Matched With An Opponent", wheat, 60)
+        message_to_screen("Blue Player Goes First", wheat, 110)
+        message_to_screen("Multiplayer Implementation by Sean Surtz and Peter Hart", wheat, 150)
+        message_to_screen("Original SinglePlayer Game By - CodeProject.org", wheat, 280)
         # message_to_screen("Press C to play, P to pause or Q to quit",black,180)
 
         button("Play", 150, 500, 100, 50, wheat, light_green, action="play",size="vsmall")
@@ -534,7 +534,7 @@ def you_win():
         clock.tick(15)
 
 #---------------------------function for health bars of both tanks---------------------------------------
-def health_bars(player_health, enemy_health):
+def health_bars(player_health, enemy_health, pNo):
     if player_health > 75:
         player_health_color = green
     elif player_health > 50:
@@ -549,14 +549,25 @@ def health_bars(player_health, enemy_health):
     else:
         enemy_health_color = red
 
-    pygame.draw.rect(gameDisplay, player_health_color, (680, 25, player_health, 25))
-    pygame.draw.rect(gameDisplay, enemy_health_color, (20, 25, enemy_health, 25))
+    if pNo != 1:
+        pygame.draw.rect(gameDisplay, player_health_color, (680, 25, player_health, 25))
+        pygame.draw.rect(gameDisplay, enemy_health_color, (20, 25, enemy_health, 25))
+    else:
+        pygame.draw.rect(gameDisplay, player_health_color, (20, 25, player_health, 25))
+        pygame.draw.rect(gameDisplay, enemy_health_color, (680, 25, enemy_health, 25))
+        
+    if pNo != 1:
+        txtplayer_health = smallfont.render(str(player_health), True, wheat)
+        gameDisplay.blit(txtplayer_health, [display_width - 80, 60])
 
-    txtplayer_health = smallfont.render(str(player_health), True, wheat)
-    gameDisplay.blit(txtplayer_health, [display_width - 80, 60])
+        txtenemy_health = smallfont.render(str(enemy_health), True, wheat)
+        gameDisplay.blit(txtenemy_health, [50, 60])
+    else:
+        txtplayer_health = smallfont.render(str(player_health), True, wheat)
+        gameDisplay.blit(txtplayer_health, [50, 60])
 
-    txtenemy_health = smallfont.render(str(enemy_health), True, wheat)
-    gameDisplay.blit(txtenemy_health, [50, 60])
+        txtenemy_health = smallfont.render(str(enemy_health), True, wheat)
+        gameDisplay.blit(txtenemy_health, [display_width - 80, 60])
 
 def WaitForGame(n):
     gameReady = n.ReadData()
@@ -576,7 +587,7 @@ def gameLoop(n : Network):
     gameOver = False
     FPS = 15
     playersInfo = n.ReadData()
-    mainInfo, enemyInfo = playersInfo[0], playersInfo[1]
+    mainInfo, enemyInfo, pNo = playersInfo[0], playersInfo[1], playersInfo[2]
     player_health, enemy_health = mainInfo.health, enemyInfo.health
     mainTankX, mainTankY, enemyTankX, enemyTankY = mainInfo.x, mainInfo.y, enemyInfo.x, enemyInfo.y
     currentTurPos, enemyTurPos = mainInfo.turPos, enemyInfo.turPos
@@ -662,7 +673,7 @@ def gameLoop(n : Network):
             currentTurPos = 0
         n.SendData([tankMove, currentTurPos])
         gameDisplay.fill(black)
-        health_bars(player_health, enemy_health)
+        health_bars(player_health, enemy_health, pNo)
         tank(mainTankX, mainTankY, currentTurPos,tankColor)
         enemy_tank(enemyTankX, enemyTankY, enemyTurPos,enemyColor)
 
@@ -689,13 +700,15 @@ def gameLoop(n : Network):
             players = fireShell(n)
             player, enemy = players[0], players[1]
             player_health, enemy_health = player.health, enemy.health
-            info = n.ReadData()
+            continue
         players = info
         try:
             enemyData = players[1]
             mainData = players[0]
             enemyTankX = enemyData.x
             mainTankX = mainData.x
+            player_health = mainData.health
+            enemy_health = enemyData.health
             enemyTurPos = enemyData.turPos
         except:
             pass
