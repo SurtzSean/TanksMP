@@ -1,9 +1,7 @@
 # TanksMP
 A Multiplayer Implementation of Tanks (Converted from Code-Project.org's single player tanks game)
 
-MUST HAVE PYTHON 3.9.1 NOT ANY OTHER VERSION.  HOW PICKLE READS DATA VARIES OVER EACH VERSION OF PYTHON THEREFORE, IF YOU ARE NOT USING 3.9.1 THERE WILL BE UNPICKLING ERRORS. 3.9.0 OR ANY OTHER VERSION OF PYTHON WILL NOT WORK
-
-YOU MUST ALSO HAVE PYGAME INSTALLED TO WORK!
+MUST HAVE PYTHON3, AND PYGAME INSTALLED.
 
 INSTRUCTIONS
   1. Install Python 3.9.1 from Python's website https://www.python.org/downloads/release/python-391/
