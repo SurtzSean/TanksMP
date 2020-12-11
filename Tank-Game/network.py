@@ -2,7 +2,7 @@ import socket
 import pickle
 from socket import error
 
-HOST = "50.116.57.17"
+HOST = "localhost"
 PORT = 5000
 
 class Network:
