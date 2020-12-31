@@ -2,12 +2,14 @@ import socket
 from _thread import *
 import pickle
 import pygame
+import struct
 from GameInfo import GameData, PlayerData
 import time
 
-HOST = ''
+HOST = 'localhost'
 PORT = 5000
-class Server:
+
+class Server: 
     def __init__(self) -> None:
         self.games = {} #int : game
         self.players = 0
@@ -15,15 +17,38 @@ class Server:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.bind((HOST, PORT))
         self.s.listen()
+
+    def recvall(self,addr, n):
+        # Helper function to recv n bytes or return None if EOF is hit
+        data = bytearray()
+        while len(data) < n:
+            packet = addr.recv(n - len(data))
+            if not packet:
+                return None
+            data.extend(packet)
+        return data
+
+    def send_msg(self, addr, msg):
+        # Prefix each message with a 4-byte length (network byte order)
+        msg = struct.pack('>I', len(msg)) + msg
+        addr.sendall(msg)
+
+    def recv_msg(self,addr):
+        # Read message length and unpack it into an integer
+        raw_msglen = self.recvall(addr,4)
+        if not raw_msglen:
+            return None
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        # Read the message data
+        return self.recvall(addr,msglen)
     
-    def ReadData(self, addr):
-        data = addr.recv(500)
+    def ReadData(self,addr):
+        data = self.recv_msg(addr)
         return pickle.loads(data)
 
     def SendData(self, addr, data):
         sData = pickle.dumps(data)
-        addr.sendall(sData)
-
+        self.send_msg(addr,sData)
     
     def handleConnection(self, conn, addr, g):
         try:
